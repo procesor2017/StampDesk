@@ -1,0 +1,5 @@
+{
+  "version": "0.0.1",
+  "created_at": "2026-02-21",
+  "files": ["country.csv", "issue.csv", "stamp.csv", "stamp_variant.csv", "catalog_price.csv"]
+}

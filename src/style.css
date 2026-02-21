@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* Definice tvého Spotify tématu pro v4 */
+@theme {
+  --color-spotify: #1db954;
+  --color-dark: #121212;
+  --color-card: #181818;
+  --color-card-hover: #282828;
+  
+  /* Přidáme plynulé animace pro hover efekty */
+  --default-transition-duration: 300ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Globální nastavení pro Electron aplikaci */
+@layer base {
+  html, body {
+    @apply h-full overflow-hidden bg-black text-white;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Čistý scrollbar ve stylu Spotify */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #3e3e3e;
+    border-radius: 5px;
+    border: 2px solid #121212;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+/* Vlastní utility pro "Spotify" gradient na pozadí */
+.bg-spotify-gradient {
+  background: linear-gradient(to bottom, #222222 0%, #121212 100%);
+}
