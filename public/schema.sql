@@ -68,8 +68,7 @@ CREATE TABLE IF NOT EXISTS stamp_variant (
   image_path    TEXT, -- FOTO VARIANTY (např. detail papíru nebo barvy)
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY(stamp_id) REFERENCES stamp(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  UNIQUE(stamp_id, variant_name)
+  FOREIGN KEY(stamp_id) REFERENCES stamp(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS plate_flaw (

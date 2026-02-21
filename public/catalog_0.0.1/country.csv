@@ -1,1 +1,7 @@
-id,parent_id,name,iso2,iso3,valid_from,valid_to
+id,parent_id,name, iso2,iso3,valid_from,valid_to
+1,NULL,Austria,AT,,1850,1918
+2,1,Lombardy-Venetia,LV,,1850,1866
+3,1,Austrian Post Offices in the Levant,AL,,1867,1914
+4,1,Bosnia and Herzegovina,BA,,1879,1918
+5,NULL,Czechoslovakia,CS,,1918,1992
+6,5,Subcarpathian Rus (nebo Transcarpathia),SR,,1919,1939

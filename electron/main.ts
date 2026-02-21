@@ -23,6 +23,107 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 
 let db: any
 
+function hasColumn(table: string, column: string): boolean {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+  return columns.some((item) => item.name === column)
+}
+
+function runSchemaMigrations() {
+  // Ensure catalog tables exist for legacy DBs that were created with an older schema subset.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS issue (
+      id            INTEGER PRIMARY KEY,
+      country_id    INTEGER NOT NULL,
+      title         TEXT NOT NULL,
+      year          INTEGER,
+      start_date    TEXT,
+      end_date      TEXT,
+      notes         TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(country_id) REFERENCES country(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+      UNIQUE(country_id, title, year)
+    );
+
+    CREATE TABLE IF NOT EXISTS stamp (
+      id               INTEGER PRIMARY KEY,
+      issue_id         INTEGER NOT NULL,
+      name             TEXT NOT NULL,
+      face_value       TEXT,
+      currency         TEXT,
+      catalog_no       TEXT,
+      design_desc      TEXT,
+      notes            TEXT,
+      main_image_path  TEXT,
+      created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(issue_id) REFERENCES issue(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+      UNIQUE(issue_id, name, face_value, currency, catalog_no)
+    );
+
+    CREATE TABLE IF NOT EXISTS stamp_variant (
+      id            INTEGER PRIMARY KEY,
+      stamp_id      INTEGER NOT NULL,
+      variant_code  TEXT,
+      variant_name  TEXT NOT NULL,
+      perforation   TEXT,
+      paper         TEXT,
+      watermark     TEXT,
+      color         TEXT,
+      printing      TEXT,
+      gum           TEXT,
+      notes         TEXT,
+      image_path    TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(stamp_id) REFERENCES stamp(id) ON DELETE CASCADE ON UPDATE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS plate_flaw (
+      id               INTEGER PRIMARY KEY,
+      stamp_id         INTEGER NOT NULL,
+      stamp_variant_id INTEGER,
+      flaw_code        TEXT NOT NULL,
+      title            TEXT NOT NULL,
+      description      TEXT,
+      position         TEXT,
+      image_path       TEXT,
+      created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(stamp_id) REFERENCES stamp(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      FOREIGN KEY(stamp_variant_id) REFERENCES stamp_variant(id) ON DELETE SET NULL ON UPDATE CASCADE,
+      UNIQUE(stamp_id, stamp_variant_id, flaw_code)
+    );
+
+    CREATE TABLE IF NOT EXISTS catalog_price (
+      id                INTEGER PRIMARY KEY,
+      stamp_id          INTEGER,
+      stamp_variant_id  INTEGER,
+      plate_flaw_id     INTEGER,
+      catalog_name      TEXT DEFAULT 'ANK',
+      price_mint        REAL,
+      price_used        REAL,
+      price_on_cover    REAL,
+      currency          TEXT DEFAULT 'EUR',
+      updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(stamp_id) REFERENCES stamp(id) ON DELETE CASCADE,
+      FOREIGN KEY(stamp_variant_id) REFERENCES stamp_variant(id) ON DELETE CASCADE,
+      FOREIGN KEY(plate_flaw_id) REFERENCES plate_flaw(id) ON DELETE CASCADE
+    );
+  `)
+
+  // Backward compatibility for older user DBs created before image columns existed.
+  if (!hasColumn('stamp', 'main_image_path')) {
+    db.exec('ALTER TABLE stamp ADD COLUMN main_image_path TEXT')
+  }
+  if (!hasColumn('stamp_variant', 'image_path')) {
+    db.exec('ALTER TABLE stamp_variant ADD COLUMN image_path TEXT')
+  }
+  if (!hasColumn('plate_flaw', 'image_path')) {
+    db.exec('ALTER TABLE plate_flaw ADD COLUMN image_path TEXT')
+  }
+}
+
 function initDb() {
   if (!db) {
     const dbPath = path.join(app.getPath('userData'), 'stampdesk.db')
@@ -43,6 +144,8 @@ function initDb() {
       value TEXT NOT NULL
     )
   `)
+
+  runSchemaMigrations()
 }
 
 function parseVersion(version: string): number[] {
@@ -457,4 +560,6 @@ app.whenReady().then(() => {
   initDb()
   applyCatalogUpdateIfNeeded()
   createWindow()
+}).catch((error: unknown) => {
+  console.error('Startup failed:', error)
 })
